@@ -10,7 +10,7 @@ This is a UI that will appear after a user takes a screenshot to give them vario
 - Cancel button will discard the screenshot and close the UI
 - Share button will save the screenshot and send a file share intent
 - Save button will save the screenshot and close the UI
-##TODO
+## TODO
 - Decide if back button should function as cancel or save (probably save)
 - Impliment broadcast receiver
 - Add button functionality (requires some system APIs, so it will be done last)
