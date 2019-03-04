@@ -1,24 +1,14 @@
 package org.carbonrom.screenshotui;
 
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.os.RemoteException;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.ScaleAnimation;
@@ -67,13 +57,9 @@ public class ScreenshotUILayout extends LinearLayout {
         setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
         addView(mScreenshotUILayout, getWindowLayoutParams());
 
-        ScaleAnimation animation = new ScaleAnimation(1/0.86f, 1f, 1/0.86f, 1f,
-                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF,
-                0.0f);
-        animation.setDuration(200);
-        animation.setStartOffset(300);
-        screenshotView.setAnimation(animation);
-        animation.startNow();
+        ScaleAnimation screenshotAnimation = getAnimation();
+        screenshotView.setAnimation(screenshotAnimation);
+        screenshotAnimation.startNow();
     }
 
     public ImageView getScreenshotView() {
@@ -101,6 +87,15 @@ public class ScreenshotUILayout extends LinearLayout {
         return imageView;
     }
 
+    public ScaleAnimation getAnimation() {
+        ScaleAnimation animation = new ScaleAnimation(1/0.75f, 1f, 1/0.75f, 1f,
+                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF,
+                0.5f);
+        animation.setDuration(200);
+        animation.setStartOffset(200);
+        return animation;
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && event.getAction() != KeyEvent.ACTION_UP) {
@@ -122,12 +117,22 @@ public class ScreenshotUILayout extends LinearLayout {
     private WindowManager.LayoutParams getWindowLayoutParams() {
         WindowManager.LayoutParams param = new WindowManager.LayoutParams();
 
+        // Change to TYPE_SYSTEM_OVERLAY later
         param.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+
         param.format = PixelFormat.RGBA_8888;
-        param.dimAmount= 0.8f;
         param.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED;
+
+        // Set background dim
+        param.dimAmount= 0.8f;
         param.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
-        param.flags = param.flags | WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION;
+
+        // Configure UI
+        param.flags = param.flags | WindowManager.LayoutParams.FLAG_FULLSCREEN;
+        param.flags = param.flags | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
+        param.flags = param.flags | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION;
+
+        // Use entire screen
         param.x = 0;
         param.y = 0;
         param.width = WindowManager.LayoutParams.MATCH_PARENT;

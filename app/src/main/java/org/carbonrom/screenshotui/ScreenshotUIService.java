@@ -12,14 +12,17 @@ public class ScreenshotUIService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        // Start UI
         Drawable screenshot = getDrawable(R.drawable.dummy); // Replace with screenshot capture
         mScreenshotUI = new ScreenshotUILayout(this, screenshot);
         mScreenshotUI.showUI();
 
-        setOnClickReceivers();
+        // Handle onClick here so we don't stress the UI thread
+        setOnClickListeners();
     }
 
-    private void setOnClickReceivers() {
+    private void setOnClickListeners() {
         mScreenshotUI.mCropButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -95,26 +98,4 @@ public class ScreenshotUIService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
-    /* Requires platform APIs
-    public Bitmap getSnapshot() {
-        final ActivityManager am = (android.app.ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
-        int taskId = -1;
-        java.util.List<ActivityManager.RunningTaskInfo> list = am.getRunningTasks(1);
-        if (list.size() != 0) {
-            ActivityManager.RunningTaskInfo topRunningTask = list.get(0);
-            taskId = topRunningTask.id;
-        }
-        try {
-            ActivityManager.TaskSnapshot snapshot = ActivityManager.getService()
-                    .getTaskSnapshot(taskId, true);
-            if (snapshot != null)
-                return Bitmap.createHardwareBitmap(snapshot.getSnapshot());
-            else
-                return null;
-        } catch (RemoteException e) {
-            // nah
-        }
-    }*/
-
 }
