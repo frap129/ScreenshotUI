@@ -7,7 +7,9 @@ import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -27,11 +29,17 @@ public class ScreenshotUILayout extends LinearLayout {
     public ImageButton mShareButton;
     public ImageButton mSaveButton;
 
+    public LinearLayout mTopMenu;
+    public LinearLayout mBottomMenu;
+
     private View mScreenshotUILayout;
     private WindowManager wm;
+    private WindowManager.LayoutParams lp;
     private Context mContext;
 
     private Drawable mScreenshot;
+    private int mViewHeight;
+    private int mViewWidth;
 
     public ScreenshotUILayout(Context context, Drawable screenshot) {
         super(context);
@@ -42,19 +50,23 @@ public class ScreenshotUILayout extends LinearLayout {
         // Add screenshot to view
         FrameLayout container = mScreenshotUILayout.findViewById(R.id.container);
         ImageView screenshotView = getScreenshotView();
+        handleImageClick(screenshotView);
         container.addView(screenshotView);
 
-        // Populate variables for later user
+        // Populate variables for later use
         mCropButton = mScreenshotUILayout.findViewById(R.id.crop);
         mScrollButton = mScreenshotUILayout.findViewById(R.id.scroll);
         mEditButton = mScreenshotUILayout.findViewById(R.id.edit);
         mCancelButton = mScreenshotUILayout.findViewById(R.id.cancel);
         mShareButton = mScreenshotUILayout.findViewById(R.id.share);
         mSaveButton = mScreenshotUILayout.findViewById(R.id.save);
+        mTopMenu = mScreenshotUILayout.findViewById(R.id.top_menu);
+        mBottomMenu = mScreenshotUILayout.findViewById(R.id.bottom_menu);
+
 
         wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
-
-        setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
+        mScreenshotUILayout.setScaleX(0.4f);
+        mScreenshotUILayout.setScaleY(0.4f);
         addView(mScreenshotUILayout, getWindowLayoutParams());
 
         ScaleAnimation screenshotAnimation = getAnimation();
@@ -76,13 +88,13 @@ public class ScreenshotUILayout extends LinearLayout {
         Display display = ((WindowManager) this.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         DisplayMetrics displayMetrics = new DisplayMetrics();
         display.getRealMetrics(displayMetrics);
-        float scale = 0.8f;
-        int viewHeight = (int) (displayMetrics.heightPixels * scale);
-        int viewWidth = (int) (displayMetrics.widthPixels * scale);
+        final float startScale = 0.8f;
+        mViewHeight = (int) (displayMetrics.heightPixels * startScale);
+        mViewWidth = (int) (displayMetrics.widthPixels * startScale);
 
         // Set view height and width
-        imageView.setScaleX((float) (viewWidth) / imgWidth);
-        imageView.setScaleY((float) (viewHeight) / imgHeight);
+        imageView.setScaleX((float) (mViewWidth) / imgWidth);
+        imageView.setScaleY((float) (mViewHeight) / imgHeight);
 
         return imageView;
     }
@@ -106,12 +118,76 @@ public class ScreenshotUILayout extends LinearLayout {
         return super.dispatchKeyEvent(event);
     }
 
-    public void showUI(){
-        wm.addView(this, getWindowLayoutParams());
+    public void showUI() {
+        lp = getWindowLayoutParams();
+        wm.addView(this, lp);
     }
 
     public void dismissUI() {
         wm.removeView(this);
+    }
+
+    public void dimBackground() {
+        lp.dimAmount= 0.8f;
+        lp.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        wm.updateViewLayout(this, lp);
+    }
+
+    public void setFullscreen() {
+        setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
+        // Configure UI Flags
+        lp.flags = lp.flags | WindowManager.LayoutParams.FLAG_FULLSCREEN;
+        lp.flags = lp.flags | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
+        lp.flags = lp.flags | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION;
+
+        // Use entire screen
+        //lp.x = 0;
+        //lp.y = 0;
+        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+
+        // Center everything
+        lp.gravity = Gravity.CENTER;
+        wm.updateViewLayout(this, lp);
+    }
+
+    public void showMenus() {
+        mTopMenu.setVisibility(LinearLayout.VISIBLE);
+        mBottomMenu.setVisibility(LinearLayout.VISIBLE);
+    }
+
+    public void rescaleImage(ImageView iv) {
+        // Get original height and width
+        int imgWidth = mScreenshot.getIntrinsicWidth();
+        int imgHeight = mScreenshot.getIntrinsicHeight();
+
+        // Calculate view height and width
+        Display display = ((WindowManager) this.getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        display.getRealMetrics(displayMetrics);
+        final float newScale = 0.8f;
+        mViewHeight = (int) (displayMetrics.heightPixels * newScale);
+        mViewWidth = (int) (displayMetrics.widthPixels * newScale);
+
+        // Set view height and width
+        iv.setScaleX((float) (mViewWidth) / imgWidth);
+        iv.setScaleY((float) (mViewHeight) / imgHeight);
+
+    }
+
+    private void handleImageClick(ImageView iv) {
+        iv.setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                //rescaleImage((ImageView) v);
+                mScreenshotUILayout.setScaleX(1);
+                mScreenshotUILayout.setScaleY(1);
+                setFullscreen();
+                dimBackground();
+                showMenus();
+                return true;
+            }
+        });
     }
 
     private WindowManager.LayoutParams getWindowLayoutParams() {
@@ -120,23 +196,15 @@ public class ScreenshotUILayout extends LinearLayout {
         // Change to TYPE_SYSTEM_OVERLAY later
         param.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
 
-        param.format = PixelFormat.RGBA_8888;
+        param.format = PixelFormat.TRANSLUCENT;
         param.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED;
 
-        // Set background dim
-        param.dimAmount= 0.8f;
-        param.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        // Initialize screenshot in bottom right
+        param.gravity = Gravity.END | Gravity.BOTTOM;
 
-        // Configure UI
-        param.flags = param.flags | WindowManager.LayoutParams.FLAG_FULLSCREEN;
-        param.flags = param.flags | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
-        param.flags = param.flags | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION;
-
-        // Use entire screen
-        param.x = 0;
-        param.y = 0;
-        param.width = WindowManager.LayoutParams.MATCH_PARENT;
-        param.height = WindowManager.LayoutParams.MATCH_PARENT;
+        // Wrap screenshot
+        param.width = mViewWidth;
+        param.height = mViewHeight;
 
         return param;
     }
